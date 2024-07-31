@@ -17,6 +17,8 @@ cat << "EOF"
 EOF
 echo -e "${RESET}"
 
+
+
 # Help menu
 display_help() {
     echo -e "NucleiFuzzer is a Powerful Automation tool for detecting XSS, SQLi, SSRF, Open-Redirect, etc. vulnerabilities in Web Applications\n\n"
@@ -30,19 +32,23 @@ display_help() {
 
 # Get the current user's home directory
 home_dir=$(eval echo ~"$USER")
+# Tool dependencies: ParamSpider, Nuclei, HTTPX
+paramspider_path="$home_dir/Tools/ParamSpider"
+nuclei_tmpl_path="$home_dir/Tools/nuclei-templates"
+httpx_path="httpx-toolkit"
 
 excluded_extentions="png,jpg,gif,jpeg,swf,woff,svg,pdf,json,css,js,webp,woff,woff2,eot,ttf,otf,mp4,txt"
 
 # Check if ParamSpider is already cloned and installed
-if [ ! -d "$home_dir/ParamSpider" ]; then
+if [ ! -d $paramspider_path ]; then
     echo "Cloning ParamSpider..."
-    git clone https://github.com/0xKayala/ParamSpider "$home_dir/ParamSpider"
+    git clone https://github.com/0xKayala/ParamSpider $paramspider_path
 fi
 
 # Check if nuclei fuzzing-templates are already cloned.
-if [ ! -d "$home_dir/nuclei-templates" ]; then
+if [ ! -d $nuclei_tmpl_path ]; then
     echo "Cloning fuzzing-templates..."
-    git clone https://github.com/0xKayala/nuclei-templates.git "$home_dir/nuclei-templates"
+    git clone https://github.com/0xKayala/nuclei-templates.git $nuclei_tmpl_path
 fi
 
 # Check if nuclei is installed, if not, install it
@@ -94,11 +100,11 @@ output_file="output/allurls.yaml"
 # Step 2: Get the vulnerable parameters based on user input
 if [ -n "$domain" ]; then
     echo "Running ParamSpider on $domain"
-    python3 "$home_dir/ParamSpider/paramspider.py" -d "$domain" --exclude "$excluded_extentions" --level high --quiet -o "output/$domain.yaml"
+    python3 "$paramspider_path/paramspider.py" -d "$domain" --exclude "$excluded_extentions" --level high --quiet -o "output/$domain.yaml"
 elif [ -n "$filename" ]; then
     echo "Running ParamSpider on URLs from $filename"
     while IFS= read -r line; do
-        python3 "$home_dir/ParamSpider/paramspider.py" -d "$line" --exclude "$excluded_extentions" --level high --quiet -o "output/${line}.yaml"
+        python3 "$paramspider_path/paramspider.py" -d "$line" --exclude "$excluded_extentions" --level high --quiet -o "output/${line}.yaml"
         cat "output/${line}.yaml" >> "$output_file"  # Append to the combined output file
     done < "$filename"
 fi
@@ -118,10 +124,10 @@ temp_file=$(mktemp)
 if [ -n "$domain" ]; then
     # Use a temporary file to store the sorted and unique URLs
     sort "output/$domain.yaml" | uniq > "$temp_file"
-    httpx -silent -mc 200,301,302,403 -l "$temp_file" | nuclei -t "$home_dir/nuclei-templates" -dast -rl 05
+    $httpx_path -silent -mc 200,301,302,403 -l "$temp_file" | nuclei -t "$nuclei_tmpl_path" -dast -rl 05
 elif [ -n "$filename" ]; then
     sort "$output_file" | uniq > "$temp_file"
-    httpx -silent -mc 200,301,302,403 -l "$temp_file" | nuclei -t "$home_dir/nuclei-templates" -dast -rl 05
+    $httpx_path -silent -mc 200,301,302,403 -l "$temp_file" | nuclei -t "$nuclei_tmpl_path" -dast -rl 05
 fi
 rm "$temp_file"  # Remove the temporary file
 
