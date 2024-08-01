@@ -48,7 +48,7 @@ fi
 # Check if nuclei fuzzing-templates are already cloned.
 if [ ! -d $nuclei_tmpl_path ]; then
     echo "Cloning fuzzing-templates..."
-    git clone https://github.com/0xKayala/nuclei-templates.git $nuclei_tmpl_path
+    git clone https://github.com/projectdiscovery/nuclei-templates.git $nuclei_tmpl_path
 fi
 
 # Check if nuclei is installed, if not, install it
